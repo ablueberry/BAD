@@ -137,7 +137,7 @@ INSERT INTO Sponsorzy (ID, Firma, Sponsorowana_kwota, Rozpoczecie_wspolpracy) VA
 ('BOT', 'Bootstrap Inc.', 16500, '2015-04-14'),
 ('VUE', 'Vue Inc.', 10500, '2016-04-14');
 
-SELECT * FROM Sponsorzy;
+-- SELECT * FROM Sponsorzy;
 -- ---------------------------------
 --            Oddzialy
 -- ---------------------------------
@@ -146,7 +146,7 @@ INSERT INTO Oddzialy (ID, Kraj, Miejscowosc, Istnieje_od) VALUES
 ('POZPL', 'Polska', 'Poznan', '2014-10-01'),
 ('WARPL', 'Polska', 'Warszawa', '2015-01-01');
 
-SELECT * FROM Oddzialy;
+-- SELECT * FROM Oddzialy;
 
 -- ---------------------------------
 --           Pracownicy
@@ -166,13 +166,13 @@ INSERT INTO Pracownicy (
 ('MO1', 'Michal', 'Okolski', 'Wlasciciel', 10000, 0.00, '', 'WRCPL', '2014-02-01', 150),
 ('TW1', 'Tomasz', 'Witka', 'Programista', 8000, 2000.00, 'O prace', 'WRCPL', '2014-02-01', 150),
 ('AW1', 'Ala', 'Witka', 'Programista', 8000, 2000.00, 'O prace', 'WRCPL', '2014-10-01', 150),
-('PR1', 'Patricia', 'Ruegga', 'Konsultant', 2500, 500.00, 'Zlecenie', 'WRCPL', '2014-01-01', 150),
+('PR1', 'Patricia', 'Ruegga', 'Konsultant', 2500, 500.00, 'Zlecenie', 'WRCPL', '2014-10-01', 150),
 ('AR1', 'Amelia', 'Rus', 'Opiekun', 2400, 500.00, 'Zlecenie', 'POZPL', '2014-10-01', 100),
 ('MK1', 'Mikolaj', 'Kles', 'Opiekun', 2400, 500.00, 'Zlecenie', 'POZPL', '2014-10-01', 100),
 ('AR2', 'Aleksander', 'Robak', 'Konsultant', 2000, 500.00, 'Zlecenie', 'WARPL', '2015-01-01', 100),
 ('JW1', 'Jacek', 'Wozny', 'Opiekun', 2400, 500.00, 'Zlecenie', 'WARPL', '2015-01-01', 100);
 
-SELECT * FROM Pracownicy;
+-- SELECT * FROM Pracownicy;
 
 -- ---------------------------------
 --         Oprogramowanie
@@ -187,7 +187,7 @@ INSERT INTO Oprogramowanie (ID, Nazwa, Wersja, Data_wydania, AutorID) VALUES
 ('GR3', 'Generator React', '1.5.0', '2016-06-01', 'AW1'),
 ('GR4', 'Generator React', '2.0.0', '2016-08-01', 'AW1');
 
-SELECT * FROM Oprogramowanie;
+-- SELECT * FROM Oprogramowanie;
 -- ---------------------------------
 --            Mentorzy
 -- ---------------------------------
@@ -207,7 +207,7 @@ INSERT INTO Mentorzy (
 ('MG1', 'Mario', 'Gonzalez', 'Hiszpania', 'Angular', 350, 'MK1'),
 ('MC1', 'Martinez', 'Calves', 'Hiszpania', 'React', 790, 'MK1');
 
-SELECT * FROM Mentorzy;
+-- SELECT * FROM Mentorzy;
 -- ---------------------------------
 --            Warsztaty
 -- ---------------------------------
@@ -266,7 +266,7 @@ INSERT INTO Warsztaty (
 ('043', 'MC1', '2016-09-20', 'React', 'Niemcy', 'Berlin', 'DMK', 'GR4'),
 ('044', 'MC1', '2016-09-21', 'React', 'Niemcy', 'Berlin', 'DMK', 'GR4');
 
-SELECT * FROM Warsztaty;
+-- SELECT * FROM Warsztaty;
 
 -- ---------------------------------
 --           Uczestnicy
@@ -366,22 +366,105 @@ INSERT INTO Uczestnicy (
 ('DB1', 'Dominika', 'Bulczynska', '042', 'Polska', 'Poznan', 20),
 ('PT1', 'Patryk', 'Tepper', '042', 'Polska', 'Wroclaw', 40);
 
-SELECT * FROM Uczestnicy;
+-- SELECT * FROM Uczestnicy;
+
 -- -- ---------------------------------
 -- Usuwanie i tworzenie widoków
 -- ---------------------------------
---
---
+
+-- Ilość warsztatów które przeprowadził dany mentor w danym mieście
+
+DROP VIEW IF EXISTS Najczestsze_miasto;
+
+CREATE VIEW Najczestsze_miasto AS
+SELECT  Warsztaty.Miejscowosc AS Miejscowosc,
+        Mentorzy.Imie AS Imie,
+        Mentorzy.Nazwisko AS Nazwisko,
+        COUNT(Warsztaty.Miejscowosc) AS Ilosc_warsztatow
+FROM Mentorzy JOIN Warsztaty ON Warsztaty.MentorID = Mentorzy.ID
+GROUP BY Miejscowosc, Nazwisko
+ORDER BY Ilosc_warsztatow DESC;
+
+-- Kwota jaką każdy sponsor przeznaczył w sumie na sponsorowane warsztaty
+DROP VIEW IF EXISTS Sponsorowana_kwota;
+
+CREATE VIEW Sponsorowana_kwota AS
+SELECT  Sponsorzy.Firma AS Sponsor,
+        COUNT(Warsztaty.ID) AS Ilosc_warsztatow,
+        COUNT(Warsztaty.ID) * Sponsorzy.Sponsorowana_kwota AS Kwota
+FROM Sponsorzy JOIN Warsztaty ON Warsztaty.SponsorID = Sponsorzy.ID
+GROUP BY Sponsor;
+
+-- Dziesięć warsztatów których uczestnicy wpłacili najwięcej za wstęp
+DROP VIEW IF EXISTS Oplaty_za_wstep;
+
+CREATE VIEW Oplaty_za_wstep AS
+SELECT  Warsztaty.ID AS Warsztat,
+        Warsztaty.Tytul AS Tytul,
+        Warsztaty.Data AS Data,
+        Warsztaty.Miejscowosc AS Miejscowosc,
+        SUM(Uczestnicy.Oplata) AS Suma_oplat,
+        COUNT(Uczestnicy.ID) AS Ilosc_uczest
+FROM Uczestnicy JOIN Warsztaty ON Uczestnicy.WarsztatID = Warsztaty.ID
+GROUP BY Warsztat
+ORDER BY Suma_oplat DESC
+LIMIT 10;
+
 -- ---------------------------------
 -- Tworzenie procedur
 -- ---------------------------------
---
---
+
+
+-- Ilość warsztatów jaka odbyła sie w danym mieście sponsorowanych przez daną firmę
+
+DROP PROCEDURE IF EXISTS Sponsorzy_wedlug_miast;
+
+//
+CREATE PROCEDURE Sponsorzy_wedlug_miast (IN nazwa_firmy VARCHAR(30), IN miasto VARCHAR(30))
+BEGIN
+  SELECT Warsztaty.Miejscowosc AS Miejscowosc,
+  Sponsorzy.Firma AS Firma,
+  COUNT(Warsztaty.ID) AS Ilosc_warsztatow
+  FROM Sponsorzy JOIN Warsztaty ON Warsztaty.SponsorID = Sponsorzy.ID
+  WHERE Firma = nazwa_firmy AND Miejscowosc = miasto
+  GROUP BY Firma
+  ORDER BY Ilosc_warsztatow DESC;
+END//
+
+
+
+-- Suma otrzymanego przez mentora wynagrodzenia za przeprowadzone warsztaty
+
+DROP PROCEDURE IF EXISTS Wynagrodzenie_mentora;
+
+//
+CREATE PROCEDURE Wynagrodzenie_mentora (IN mentorID VARCHAR(30))
+BEGIN
+  SELECT  Mentorzy.Imie AS Imie,
+          Mentorzy.Nazwisko AS Nazwisko,
+          COUNT(Warsztaty.ID) * Mentorzy.Wynagrodzenie AS Wynagrodzenie
+  FROM Mentorzy JOIN Warsztaty ON Warsztaty.MentorID = Mentorzy.ID
+  WHERE Mentorzy.ID = mentorID
+  GROUP BY Nazwisko;
+END//
+
+
 -- ---------------------------------------------
 -- Utworzenie raportów (wywołanie widoków)
--- ----------------------------------------- ----
---
---
+-- ---------------------------------------------
+
+SELECT * FROM Najczestsze_miasto;
+
+SELECT * FROM Sponsorowana_kwota;
+
+SELECT * FROM Oplaty_za_wstep;
+
+CALL Sponsorzy_wedlug_miast('Samsung', 'Warszawa');
+
+CALL Wynagrodzenie_mentora('MM1');
+
 -- ---------------------------------------------
 -- Usunięcie bazy
 -- ---------------------------------------------
+
+DROP DATABASE Firma;
